@@ -6,12 +6,11 @@ var suspects = [];
 var suspects2 = [];
 var namesUsed = 'Names';
 var unusualTimestamps = [];
-var previousUnlock = '';
 
+// Start script by tracking door events and then analyzing the discrepencies identified
 trackDoor(murderRoom, null, null, function (num) {
     trackFloorActivity(2, unusualTimestamps[num][1], unusualTimestamps[num][2]);
     trackStairwell(unusualTimestamps[num][1], unusualTimestamps[num][2]);
-    //console.log(suspects.length);
     for (var z = 0; z < suspects.length; z++) {
         if (suspects.length == 0) {
             break;
@@ -24,9 +23,9 @@ trackDoor(murderRoom, null, null, function (num) {
             console.log(suspects[z][0][0]);
         }
     }
-    //console.log(suspects2);
-    //console.log(namesUsed);
 });
+
+// Calculate and Display Final Results
 var total = 0;
 for (var a = 0; a < suspects2.length; a++) {
     total += suspects2[a][1];
@@ -45,7 +44,7 @@ for (var b = 0; b < suspects2.length; b++) {
 console.log("------------------------");
 console.log("The killer is most likely to be " + greatestName + " with a probability of " + (((greatest / total)*100).toFixed(1)) + "% \n");
 
-
+// Track the actions at a door and identify discrepencies
 function trackDoor(doorID, startTime, endTime, cb) {
     var sensorType = null;
     let tempDoor = null;
@@ -63,14 +62,12 @@ function trackDoor(doorID, startTime, endTime, cb) {
                 lineIncrement == 2 ? doorEvent = obj[key][second_key] : null;
                 if (lineIncrement == 3 && tempDoor == doorID && (doorEvent == "successful keycard unlock" || doorEvent == "unlocked no keycard")) {
                      if (!(normalClose = searchClose(key, doorID, obj[key][second_key], false))) {
-                        //console.log("DOOR WAS NOT CLOSED: " + key + " | " + obj[key][second_key]);
                         unusualTimestamps.push(new Array(obj[key][second_key], key, searchClose(key, doorID, obj[key][second_key], true), 0));
                         for (var k = 0; k < timestampIncrement; k++) {
                             unusualTimestamps[k][3]++;
                         }
                         cb(timestampIncrement);
                         timestampIncrement++;
-                        //console.log(unusualTimestamps);
                      }
                 }
             }
@@ -82,15 +79,11 @@ function trackDoor(doorID, startTime, endTime, cb) {
                 lineIncrement = 0;
             }
         });
- /*       console.log(obj.length);
-        if (counter == obj.length) {
-            console.log("bruh");
-            cb();
-        }*/
         counter++;
     });
 }
 
+// Track actions on a floor to identify initial suspects
 function trackFloorActivity(floorNum, startTime, endTime) {
     var sensorType = null;
     let sensorID = null;
@@ -111,7 +104,6 @@ function trackFloorActivity(floorNum, startTime, endTime) {
                             else {
                                 suspects.push([[obj[key][second_key], key, sensorType, sensorID, sensorEvent, 0]]);
                             }
-                            //console.log(suspects);
                         }
                     }
                     else if (sensorType == "") {
@@ -130,8 +122,7 @@ function trackFloorActivity(floorNum, startTime, endTime) {
     });
 }
 
-
-
+// Search for a door closure to complete the common cycle of doorOpen => doorClose
 function searchClose(timestamp, doorID, indentity, returnKey) {
     var returnedToPosition = false;
     var returnVal = false;
@@ -144,7 +135,6 @@ function searchClose(timestamp, doorID, indentity, returnKey) {
                     if (parseInt(key) < parseInt(timestamp) + 10) {
                         returnVal = true;
                         returnedToPosition = false;
-                        //console.log("DOOR WAS CLOSED: " + key + " | " + obj[key]["guest-id"]);
                     }
                 }
                 else {
@@ -178,7 +168,6 @@ function searchClose(timestamp, doorID, indentity, returnKey) {
                             }
                         }
                     }
-                    //console.log("DOOR WAS CLOSED: " + key + " | " + obj[key]["guest-id"]);
                 }
             }
         }
@@ -193,8 +182,7 @@ function searchClose(timestamp, doorID, indentity, returnKey) {
     }
 }
 
-
-
+// Track the probable interactions of a person with the victim from a specific timepoint
 function trackPersonInteraction(name, startTime) {
     var sensorType = null;
     let sensorID = null;
@@ -220,8 +208,6 @@ function trackPersonInteraction(name, startTime) {
                                 suspects2.push([name, 100]);
                             }
                         }
-                        //console.log(suspects2.length);   
-                        //console.log(suspects2);
                     }
                     else {
                         var tempLimit = suspects2.length;
@@ -236,8 +222,6 @@ function trackPersonInteraction(name, startTime) {
                                 suspects2.push([name, 1]);
                             }
                         }
-                        //console.log(suspects2.length);   
-                        //console.log(suspects2);
                     }
                 }
                 lineIncrement++;
@@ -250,9 +234,9 @@ function trackPersonInteraction(name, startTime) {
             });
         }
     });
-    //console.log(suspects2);
 }
 
+// Track movements going up and down the stairwell
 function trackStairwell(startTime, endTime) {
     var sensorType = null;
     let sensorID = null;
@@ -273,7 +257,6 @@ function trackStairwell(startTime, endTime) {
                             else {
                                 suspects.push([[obj[key][second_key], key, sensorType, sensorID, sensorEvent, 0]]);
                             }
-                            //console.log(suspects);
                         }
                     }
                 }
@@ -287,5 +270,4 @@ function trackStairwell(startTime, endTime) {
             });
         }
     });
-    //console.log(suspects);
 }
