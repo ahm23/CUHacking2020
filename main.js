@@ -1,10 +1,12 @@
 var fs = require('fs');
-var obj = JSON.parse(fs.readFileSync('Murder-on-the-2nd-Floor-Raw-Data.json', 'utf8'));
+var filename = 'Murder-on-the-2nd-Floor-Raw-Data.json';
+var obj = JSON.parse(fs.readFileSync(filename, 'utf8'));
 const murderRoom = 210;
 var suspects = [];
 var suspects2 = [];
 var namesUsed = 'Names';
 var unusualTimestamps = [];
+var previousUnlock = '';
 
 trackDoor(murderRoom, null, null, function (num) {
     trackFloorActivity(2, unusualTimestamps[num][1], unusualTimestamps[num][2]);
