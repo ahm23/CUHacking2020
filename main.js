@@ -2,14 +2,46 @@ var fs = require('fs');
 var obj = JSON.parse(fs.readFileSync('Murder-on-the-2nd-Floor-Raw-Data.json', 'utf8'));
 const murderRoom = 210;
 var suspects = [];
+var suspects2 = [];
+var namesUsed = 'Names';
 var unusualTimestamps = [];
 
 trackDoor(murderRoom, null, null, function (num) {
     trackFloorActivity(2, unusualTimestamps[num][1], unusualTimestamps[num][2]);
     trackStairwell(unusualTimestamps[num][1], unusualTimestamps[num][2]);
+    //console.log(suspects.length);
+    for (var z = 0; z < suspects.length; z++) {
+        if (suspects.length == 0) {
+            break;
+        }
+        else if (namesUsed.indexOf(suspects[z][0][0]) == -1) {
+            namesUsed.concat(suspects[z][0][0]);
+            trackPersonInteraction(suspects[z][0][0], unusualTimestamps[num][1]);
+        }
+        else {
+            console.log(suspects[z][0][0]);
+        }
+    }
+    //console.log(suspects2);
+    //console.log(namesUsed);
 });
-
-
+var total = 0;
+for (var a = 0; a < suspects2.length; a++) {
+    total += suspects2[a][1];
+}
+var greatest = 0;
+var greatestName = '';
+console.log("RESULTS");
+console.log("------------------------");
+for (var b = 0; b < suspects2.length; b++) {
+    if (suspects2[b][1] > greatest) {
+        greatest = suspects2[b][1];
+        greatestName = suspects2[b][0];
+    }
+    console.log(suspects2[b][0] + ": " + (((suspects2[b][1] / total)*100).toFixed(1)) + "%");
+}
+console.log("------------------------");
+console.log("The killer is most likely to be " + greatestName + " with a probability of " + (((greatest / total)*100).toFixed(1)) + "% \n");
 
 
 function trackDoor(doorID, startTime, endTime, cb) {
@@ -20,6 +52,7 @@ function trackDoor(doorID, startTime, endTime, cb) {
     let timestampIncrement = 0;
     let counter = 0;
     let complete = false;
+    let criminalClose = '';
     Object.keys(obj).forEach(key => {
         Object.keys(obj[key]).forEach(second_key => {
             lineIncrement == 0 ? sensorType = obj[key][second_key] : null;
@@ -28,14 +61,14 @@ function trackDoor(doorID, startTime, endTime, cb) {
                 lineIncrement == 2 ? doorEvent = obj[key][second_key] : null;
                 if (lineIncrement == 3 && tempDoor == doorID && (doorEvent == "successful keycard unlock" || doorEvent == "unlocked no keycard")) {
                      if (!(normalClose = searchClose(key, doorID, obj[key][second_key], false))) {
-                        console.log("DOOR WAS NOT CLOSED: " + key + " | " + obj[key][second_key]);
+                        //console.log("DOOR WAS NOT CLOSED: " + key + " | " + obj[key][second_key]);
                         unusualTimestamps.push(new Array(obj[key][second_key], key, searchClose(key, doorID, obj[key][second_key], true), 0));
                         for (var k = 0; k < timestampIncrement; k++) {
                             unusualTimestamps[k][3]++;
                         }
                         cb(timestampIncrement);
                         timestampIncrement++;
-                        console.log(unusualTimestamps);
+                        //console.log(unusualTimestamps);
                      }
                 }
             }
@@ -76,7 +109,7 @@ function trackFloorActivity(floorNum, startTime, endTime) {
                             else {
                                 suspects.push([[obj[key][second_key], key, sensorType, sensorID, sensorEvent, 0]]);
                             }
-                            console.log(suspects);
+                            //console.log(suspects);
                         }
                     }
                     else if (sensorType == "") {
@@ -109,13 +142,41 @@ function searchClose(timestamp, doorID, indentity, returnKey) {
                     if (parseInt(key) < parseInt(timestamp) + 10) {
                         returnVal = true;
                         returnedToPosition = false;
-                        console.log("DOOR WAS CLOSED: " + key + " | " + obj[key]["guest-id"]);
+                        //console.log("DOOR WAS CLOSED: " + key + " | " + obj[key]["guest-id"]);
                     }
                 }
                 else {
                     returnVal = key;
                     returnedToPosition = false;
-                    console.log("DOOR WAS CLOSED: " + key + " | " + obj[key]["guest-id"]);
+                    if (obj[key]["guest-id"] != "Marc-Andre") {
+                        var tempLimit = suspects2.length;
+                        for (var x = 0; x <= tempLimit; x++) {
+                            if (suspects2[x]) {
+                                if (suspects2[x][0] == obj[key]["guest-id"]) {
+                                    suspects2[x][1] += 100;
+                                    break;
+                                }
+                            }
+                            else if (x == tempLimit) {
+                                suspects2.push([obj[key]["guest-id"], 100]);
+                            }
+                        }
+                    }
+                    else {
+                        var tempLimit = suspects2.length;
+                        for (var x = 0; x <= tempLimit; x++) {
+                            if (suspects2[x]) {
+                                if (suspects2[x][0] == obj[key]["guest-id"]) {
+                                    suspects2[x][1] += 25;
+                                    break;
+                                }
+                            }
+                            else if (x == tempLimit) {
+                                suspects2.push([obj[key]["guest-id"], 25]);
+                            }
+                        }
+                    }
+                    //console.log("DOOR WAS CLOSED: " + key + " | " + obj[key]["guest-id"]);
                 }
             }
         }
@@ -132,8 +193,62 @@ function searchClose(timestamp, doorID, indentity, returnKey) {
 
 
 
-function trackPerson(startTime, endTime) {
-
+function trackPersonInteraction(name, startTime) {
+    var sensorType = null;
+    let sensorID = null;
+    var sensorEvent = '';
+    var lineIncrement = 0;
+    Object.keys(obj).forEach(key => {
+        if (parseInt(startTime) < parseInt(key)) {
+            Object.keys(obj[key]).forEach(second_key => {
+                lineIncrement == 0 ? sensorType = obj[key][second_key] : null;
+                lineIncrement == 1 ? sensorID = obj[key][second_key] : null;
+                lineIncrement == 2 ? sensorEvent = obj[key][second_key] : null;
+                if (lineIncrement == 3 && obj[key][second_key] == name && name != "n/a") {
+                    if (parseInt(key) < parseInt(startTime) + 60 && parseInt(startTime) < parseInt(key)) {
+                        var tempLimit = suspects2.length;
+                        for (var x = 0; x <= tempLimit; x++) {
+                            if (suspects2[x]) {
+                                if (suspects2[x][0] == name) {
+                                    suspects2[x][1] += 100;
+                                    break;
+                                }
+                            }
+                            else if (x == tempLimit) {
+                                suspects2.push([name, 100]);
+                            }
+                        }
+                        //console.log(suspects2.length);   
+                        //console.log(suspects2);
+                    }
+                    else {
+                        var tempLimit = suspects2.length;
+                        for (var x = 0; x <= tempLimit; x++) {
+                            if (suspects2[x]) {
+                                if (suspects2[x][0] == name) {
+                                    suspects2[x][1] += 1;
+                                    break;
+                                }
+                            }
+                            else if (x == tempLimit) {
+                                suspects2.push([name, 1]);
+                            }
+                        }
+                        //console.log(suspects2.length);   
+                        //console.log(suspects2);
+                    }
+                }
+                lineIncrement++;
+                if (lineIncrement == 4) {
+                    sensorType = null;
+                    sensorID = null;
+                    sensorEvent = '';
+                    lineIncrement = 0;
+                }
+            });
+        }
+    });
+    //console.log(suspects2);
 }
 
 function trackStairwell(startTime, endTime) {
@@ -148,19 +263,16 @@ function trackStairwell(startTime, endTime) {
                 lineIncrement == 1 ? sensorID = obj[key][second_key] : null;
                 lineIncrement == 2 ? sensorEvent = obj[key][second_key] : null;
                 if (lineIncrement == 3) {
-                    if (sensorType == "motion sensor") {
-                        if (sensorID == "250" || sensorID == "elevator") {
+                    if (sensorType == "motion sensor" || sensorType == "door sensor") {
+                        if (sensorID == 250 || sensorID == "elevator" || sensorID == 150) {
                             if (suspects[obj[key][second_key]]) {
                                 suspects[obj[key][second_key]][5]++;
                             }
                             else {
                                 suspects.push([[obj[key][second_key], key, sensorType, sensorID, sensorEvent, 0]]);
                             }
-                            console.log(suspects);
+                            //console.log(suspects);
                         }
-                    }
-                    else if (sensorType == "") {
-
                     }
                 }
                 lineIncrement++;
@@ -173,4 +285,5 @@ function trackStairwell(startTime, endTime) {
             });
         }
     });
+    //console.log(suspects);
 }
